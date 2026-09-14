@@ -418,10 +418,5 @@ function useGoogleSignUp({
     }
   };
 
-  return {
-    isStarting,
-    error,
-    start,
-    clearError: () => setError(null),
-  };
+  return { isStarting, error, start, clearError: () => setError(null) };
 }

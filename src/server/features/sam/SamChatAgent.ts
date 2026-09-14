@@ -33,14 +33,8 @@ import {
   SamTelemetry,
   type SamTurnStats,
 } from "@/server/features/sam/samTurnTelemetry";
-import {
-  buildChatAgentModel,
-  buildOllamaChatAgentModel,
-} from "@/server/lib/openrouter";
-import {
-  getEnvValueSync,
-  isHostedServerAuthMode,
-} from "@/server/lib/runtime-env";
+import { buildConfiguredChatAgentModel } from "@/server/lib/openrouter";
+import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 import {
   checkUsageCreditsDepleted,
   trackUsageCreditSpend,
@@ -198,29 +192,7 @@ export class SamChatAgent extends Think {
   }
 
   private buildModel(reasoningEffort: "max" | "low") {
-    const provider = getEnvValueSync(this.env, "AI_PROVIDER") ?? "openrouter";
-    if (provider === "ollama") {
-      const baseURL = getEnvValueSync(this.env, "OLLAMA_BASE_URL");
-      const model = getEnvValueSync(this.env, "OLLAMA_MODEL");
-      if (!baseURL || !model) {
-        throw new Error(
-          "OLLAMA_BASE_URL and OLLAMA_MODEL are required when AI_PROVIDER=ollama",
-        );
-      }
-      return buildOllamaChatAgentModel(baseURL, model);
-    }
-    if (provider !== "openrouter") {
-      throw new Error(`Unsupported AI_PROVIDER: ${provider}`);
-    }
-    const apiKey = getEnvValueSync(this.env, "OPENROUTER_API_KEY");
-    if (!apiKey) {
-      throw new Error("OPENROUTER_API_KEY is required for the SAM agent");
-    }
-    return buildChatAgentModel(
-      apiKey,
-      getEnvValueSync(this.env, "OPENROUTER_MODEL"),
-      reasoningEffort,
-    );
+    return buildConfiguredChatAgentModel(this.env, reasoningEffort);
   }
 
   override getSkills() {

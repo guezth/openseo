@@ -5,6 +5,10 @@ import { getErrorCode } from "@/client/lib/error-messages";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { sendTeamInvitation } from "@/serverFunctions/organization";
 
+function isInviteRole(value: string): value is "admin" | "manager" | "viewer" {
+  return value === "admin" || value === "manager" || value === "viewer";
+}
+
 export function inviteErrorMessage(error: Error) {
   const code = getErrorCode(error);
   if (code === "RATE_LIMITED") {
@@ -79,11 +83,10 @@ export function InviteTeammateModal({
             <select
               className="select select-sm select-bordered w-full"
               value={role}
-              onChange={(event) =>
-                setRole(
-                  event.currentTarget.value as "admin" | "manager" | "viewer",
-                )
-              }
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                if (isInviteRole(value)) setRole(value);
+              }}
             >
               <option value="admin">Administrator</option>
               <option value="manager">Manager</option>

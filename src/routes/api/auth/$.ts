@@ -20,14 +20,17 @@ async function authorizeSelfHostedBootstrap(request: Request) {
   const configuredEmail = Reflect.get(env, "INITIAL_OWNER_EMAIL");
   const suppliedToken = request.headers.get("x-openseo-setup-token");
   const invitationId = request.headers.get("x-openseo-invitation-id");
-  const body = (await request
+  const body: unknown = await request
     .clone()
     .json()
-    .catch(() => null)) as {
-    email?: unknown;
-  } | null;
+    .catch(() => null);
   const suppliedEmail =
-    typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    body &&
+    typeof body === "object" &&
+    "email" in body &&
+    typeof body.email === "string"
+      ? body.email.trim().toLowerCase()
+      : "";
 
   if (
     invitationId &&

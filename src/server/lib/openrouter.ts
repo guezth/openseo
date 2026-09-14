@@ -27,6 +27,35 @@ export function buildOllamaChatAgentModel(
   return ollama(modelId);
 }
 
+export function buildConfiguredChatAgentModel(
+  env: Cloudflare.Env,
+  reasoningEffort: "max" | "low",
+): LanguageModelV3 {
+  const provider = env.AI_PROVIDER?.trim() || "openrouter";
+  if (provider === "ollama") {
+    const baseURL = env.OLLAMA_BASE_URL?.trim();
+    const model = env.OLLAMA_MODEL?.trim();
+    if (!baseURL || !model) {
+      throw new Error(
+        "OLLAMA_BASE_URL and OLLAMA_MODEL are required when AI_PROVIDER=ollama",
+      );
+    }
+    return buildOllamaChatAgentModel(baseURL, model);
+  }
+  if (provider !== "openrouter") {
+    throw new Error(`Unsupported AI_PROVIDER: ${provider}`);
+  }
+  const apiKey = env.OPENROUTER_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY is required for the SAM agent");
+  }
+  return buildChatAgentModel(
+    apiKey,
+    env.OPENROUTER_MODEL?.trim(),
+    reasoningEffort,
+  );
+}
+
 /**
  * Returns the AI SDK LanguageModel for the chat agent. `usage: { include: true }`
  * turns on OpenRouter usage accounting so each response carries its real USD
@@ -42,7 +71,7 @@ export function buildOllamaChatAgentModel(
  * Sync on purpose: Think's `getModel()` hook is sync and runs on every turn,
  * so the SAM agent reads the key/model from its DO env and builds here.
  */
-export function buildChatAgentModel(
+function buildChatAgentModel(
   apiKey: string,
   modelId?: string,
   reasoningEffort: "max" | "low" = "max",

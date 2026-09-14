@@ -384,7 +384,7 @@ function hasHostedAuthEmailConfig() {
   });
 }
 
-export function hasHostedAuthConfig() {
+function hasHostedAuthConfig() {
   try {
     getHostedBaseUrl();
     getHostedSecret();
