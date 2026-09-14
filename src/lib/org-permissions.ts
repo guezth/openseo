@@ -35,6 +35,13 @@ export const orgRoles = {
     project: ["create", "delete"],
     integration: ["manage"],
   }),
+  manager: orgAccessControl.newRole({
+    ...memberAc.statements,
+    project: ["create", "delete"],
+  }),
+  viewer: orgAccessControl.newRole({
+    ...memberAc.statements,
+  }),
   // Defined from day one so exposing it later is UI-only; not offered in the
   // invite picker yet. Members can view everything and run research, but not
   // manage the org, billing, projects, or integrations.

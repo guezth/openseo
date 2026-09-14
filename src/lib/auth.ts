@@ -11,7 +11,11 @@ import { pgDb } from "@/db/pg/client";
 import * as pgSchema from "@/db/pg/schema";
 import { getDatabaseProvider } from "@/db/provider";
 import { z } from "zod";
-import { isHostedAuthMode } from "@/lib/auth-mode";
+import {
+  getAuthMode,
+  isHostedAuthMode,
+  isSessionAuthMode,
+} from "@/lib/auth-mode";
 import { createApiKeyPlugin } from "@/lib/auth-api-key";
 import { createBaseAuthConfig } from "@/lib/auth-config";
 import {
@@ -27,6 +31,7 @@ import {
   sendHostedVerificationEmail,
   upsertHostedSignupContact,
 } from "@/server/email/loops";
+import { sendSelfHostedPasswordResetEmail } from "@/server/email/selfhost";
 
 const hostedBaseUrlSchema = z
   .string()
@@ -43,7 +48,7 @@ function createAuth() {
   // Hosted needs the real configured URL (cookies, callbacks, /api/auth routes
   // all use it). Self-hosted only builds this instance to mint/refresh Search
   // Console tokens, which never read baseURL — so a placeholder is fine there.
-  const baseUrl = isHostedAuthMode(env.AUTH_MODE)
+  const baseUrl = isSessionAuthMode(env.AUTH_MODE)
     ? getHostedBaseUrl()
     : "http://localhost";
   const bypassEmail = Reflect.get(env, "BYPASS_EMAIL_VERIFICATION") === "true";
@@ -65,9 +70,9 @@ function createAuth() {
               // that would re-mint a fresh org + free-plan grant at next
               // sign-in.
               beforeCreateInvitation: async ({ invitation }) => {
-                if (invitation.role !== "admin") {
+                if (!["admin", "manager", "viewer"].includes(invitation.role)) {
                   throw new APIError("BAD_REQUEST", {
-                    message: "Teammates can only be invited as admins.",
+                    message: "Invalid invitation role.",
                   });
                 }
               },
@@ -165,10 +170,12 @@ function createAuth() {
       resetPasswordTokenExpiresIn: 60 * 60,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        await sendHostedPasswordResetEmail({
-          email: user.email,
-          resetUrl: url,
-        });
+        const input = { email: user.email, resetUrl: url };
+        if (getAuthMode(env.AUTH_MODE) === "selfhosted_auth") {
+          await sendSelfHostedPasswordResetEmail(input);
+        } else {
+          await sendHostedPasswordResetEmail(input);
+        }
       },
     },
     emailVerification: bypassEmail
@@ -386,6 +393,33 @@ export function hasHostedAuthConfig() {
       hasHostedTurnstileConfig(env) &&
       (Reflect.get(env, "BYPASS_EMAIL_VERIFICATION") === "true" ||
         hasHostedAuthEmailConfig())
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function hasSessionAuthConfig() {
+  if (!isSessionAuthMode(env.AUTH_MODE)) return false;
+
+  try {
+    getHostedBaseUrl();
+    getHostedSecret();
+
+    if (isHostedAuthMode(env.AUTH_MODE)) {
+      return hasHostedAuthConfig();
+    }
+
+    // The first self-hosted release deliberately bypasses email verification
+    // until a transactional email provider is configured. Account creation is
+    // still restricted by the self-hosted bootstrap/invitation gate.
+    return (
+      Reflect.get(env, "BYPASS_EMAIL_VERIFICATION") === "true" &&
+      (Reflect.get(env, "SELFHOST_SIGNUP_DISABLED") === "true" ||
+        (typeof Reflect.get(env, "SETUP_TOKEN") === "string" &&
+          String(Reflect.get(env, "SETUP_TOKEN")).length >= 32)) &&
+      typeof Reflect.get(env, "INITIAL_OWNER_EMAIL") === "string" &&
+      typeof Reflect.get(env, "INITIAL_ORGANIZATION_NAME") === "string"
     );
   } catch {
     return false;

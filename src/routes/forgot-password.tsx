@@ -7,7 +7,7 @@ import {
 } from "@/client/features/auth/AuthPage";
 import { getFieldError, getFormError } from "@/client/lib/forms";
 import { authClient } from "@/lib/auth-client";
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { isSessionClientAuthMode } from "@/lib/auth-mode";
 import { getSignInSearch, normalizeAuthRedirect } from "@/lib/auth-redirect";
 import { z } from "zod";
 
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/forgot-password")({
 function ForgotPasswordPage() {
   const search = Route.useSearch();
   const redirectTo = normalizeAuthRedirect(search.redirect);
-  const isHostedMode = isHostedClientAuthMode();
+  const isHostedMode = isSessionClientAuthMode();
 
   const form = useForm({
     defaultValues: {

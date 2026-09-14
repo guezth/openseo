@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { isSessionClientAuthMode } from "@/lib/auth-mode";
 import {
   getWorkspaceMergeStatus,
   mergeLegacyWorkspaces,
@@ -17,7 +17,7 @@ export function WorkspaceMergeBanner() {
   const statusQuery = useQuery({
     queryKey: ["workspaceMergeStatus"],
     queryFn: () => getWorkspaceMergeStatus(),
-    enabled: !isHostedClientAuthMode(),
+    enabled: !isSessionClientAuthMode(),
   });
 
   const mergeMutation = useMutation({

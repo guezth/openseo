@@ -3,10 +3,12 @@ import {
   getCurrentAuthRedirect,
   getOAuthSignedQuery,
 } from "@/lib/auth-redirect";
+import { isSessionClientAuthMode } from "@/lib/auth-mode";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
 
 export const authRedirectSearchSchema = z.object({
   redirect: z.string().optional(),
+  setup_token: z.string().optional(),
 });
 
 export function useAuthPageState(redirect: string | undefined) {
@@ -15,12 +17,23 @@ export function useAuthPageState(redirect: string | undefined) {
     typeof window !== "undefined"
       ? getOAuthSignedQuery(window.location.search)
       : null;
-  const isHostedMode = isHostedClientAuthMode();
+  const isHostedMode = isSessionClientAuthMode();
+  const isCommercialHostedMode = isHostedClientAuthMode();
+  const invitationId = redirectTo.match(
+    /^\/accept-invitation\/([^/?#]+)$/,
+  )?.[1];
 
   return {
     redirectTo,
     oauthQuery,
     isHostedMode,
+    isCommercialHostedMode,
+    setupToken:
+      typeof window !== "undefined"
+        ? (new URLSearchParams(window.location.search).get("setup_token") ??
+          undefined)
+        : undefined,
+    invitationId,
   };
 }
 

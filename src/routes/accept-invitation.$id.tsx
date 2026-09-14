@@ -4,11 +4,11 @@ import { useState } from "react";
 import { AuthPageCard, AuthPageShell } from "@/client/features/auth/AuthPage";
 import { captureClientEvent } from "@/client/lib/posthog";
 import { authClient, signOutAndRedirect, useSession } from "@/lib/auth-client";
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { isSessionClientAuthMode } from "@/lib/auth-mode";
 
 export const Route = createFileRoute("/accept-invitation/$id")({
   beforeLoad: () => {
-    if (!isHostedClientAuthMode()) {
+    if (!isSessionClientAuthMode()) {
       throw notFound();
     }
   },

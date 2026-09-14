@@ -24,12 +24,13 @@ export function InviteTeammateModal({
   onInvited: () => void;
 }) {
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"admin" | "manager" | "viewer">("manager");
 
   // Server function (not authClient.inviteMember): it enforces the daily send
   // limits and fails visibly when the invite email doesn't send.
   const inviteMutation = useMutation({
     mutationFn: (inviteeEmail: string) =>
-      sendTeamInvitation({ data: { email: inviteeEmail } }),
+      sendTeamInvitation({ data: { email: inviteeEmail, role } }),
     onSuccess: () => {
       captureClientEvent("team:invitation_send");
       toast.success("Invitation sent");
@@ -55,8 +56,7 @@ export function InviteTeammateModal({
         >
           <h3 className="text-lg font-bold">Invite a teammate</h3>
           <p className="mt-2 text-sm text-base-content/60">
-            They&rsquo;ll join as an Admin with full access to each project
-            except for billing. The invitation link expires in 7 days.
+            Choose their access level. The invitation link expires in 72 hours.
           </p>
           <label className="form-control mt-4 w-full">
             <span className="label-text pb-1 text-xs text-base-content/60">
@@ -71,6 +71,24 @@ export function InviteTeammateModal({
               required
               autoFocus
             />
+          </label>
+          <label className="form-control mt-4 w-full">
+            <span className="label-text pb-1 text-xs text-base-content/60">
+              Role
+            </span>
+            <select
+              className="select select-sm select-bordered w-full"
+              value={role}
+              onChange={(event) =>
+                setRole(
+                  event.currentTarget.value as "admin" | "manager" | "viewer",
+                )
+              }
+            >
+              <option value="admin">Administrator</option>
+              <option value="manager">Manager</option>
+              <option value="viewer">Read only</option>
+            </select>
           </label>
           <div className="modal-action">
             <button

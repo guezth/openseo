@@ -155,6 +155,23 @@ async function hasPendingInvitationForEmail(email: string) {
   return pending !== undefined;
 }
 
+async function hasPendingInvitation(id: string, email: string) {
+  const [pending] = await db
+    .select({ id: invitation.id })
+    .from(invitation)
+    .where(
+      and(
+        eq(invitation.id, id),
+        eq(sql`lower(${invitation.email})`, email.trim().toLowerCase()),
+        eq(invitation.status, "pending"),
+        gt(invitation.expiresAt, new Date()),
+      ),
+    )
+    .limit(1);
+
+  return pending !== undefined;
+}
+
 async function getLastActiveOrganizationId(userId: string) {
   const record = await db.query.user.findFirst({
     columns: { lastActiveOrganizationId: true },
@@ -185,4 +202,5 @@ export const AuthRepository = {
   setLastActiveOrganization,
   getHostedUser,
   hasPendingInvitationForEmail,
+  hasPendingInvitation,
 } as const;

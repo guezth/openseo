@@ -34,7 +34,10 @@ export function TeamSettings() {
   // Same server call as inviting: for an already-pending address it re-mails
   // the same link with a refreshed expiry.
   const resendMutation = useMutation({
-    mutationFn: (email: string) => sendTeamInvitation({ data: { email } }),
+    mutationFn: (invitation: {
+      email: string;
+      role: "admin" | "manager" | "viewer";
+    }) => sendTeamInvitation({ data: invitation }),
     onSuccess: () => {
       captureClientEvent("team:invitation_resend");
       toast.success("Invitation resent");
@@ -126,8 +129,7 @@ export function TeamSettings() {
         ) : null}
       </div>
       <p className="text-sm text-base-content/60">
-        Teammates join as Admins. Admins have full access to each project except
-        for billing.
+        Invite administrators, managers, or read-only teammates.
       </p>
 
       {teamQuery.isPending ? (
@@ -164,7 +166,16 @@ export function TeamSettings() {
                   canManageTeam={canManageTeam}
                   isResending={resendMutation.isPending}
                   isCanceling={cancelInvitationMutation.isPending}
-                  onResend={() => resendMutation.mutate(invitation.email)}
+                  onResend={() =>
+                    resendMutation.mutate({
+                      email: invitation.email,
+                      role:
+                        invitation.role === "admin" ||
+                        invitation.role === "viewer"
+                          ? invitation.role
+                          : "manager",
+                    })
+                  }
                   onCancel={() =>
                     cancelInvitationMutation.mutate(invitation.id)
                   }

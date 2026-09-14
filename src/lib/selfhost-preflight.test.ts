@@ -25,7 +25,7 @@ describe("runSelfhostPreflight", () => {
 
     expect(result.failed).toBe(true);
     expect(itemFor(result, "AUTH_MODE")?.message).toContain(
-      "cloudflare_access, local_noauth, hosted",
+      "cloudflare_access, local_noauth, selfhosted_auth, hosted",
     );
   });
 
@@ -83,6 +83,35 @@ describe("runSelfhostPreflight", () => {
     expect(item?.message).toContain("BETTER_AUTH_URL");
     expect(item?.message).toContain("GOOGLE_CLIENT_ID");
     expect(item?.message).not.toContain("BETTER_AUTH_SECRET,");
+  });
+
+  it("accepts selfhosted_auth bootstrap configuration", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "selfhosted_auth",
+      BETTER_AUTH_URL: "https://seo.example.com",
+      BETTER_AUTH_SECRET: "x".repeat(40),
+      SETUP_TOKEN: "y".repeat(40),
+      INITIAL_OWNER_EMAIL: "owner@example.com",
+      INITIAL_ORGANIZATION_NAME: "Example",
+      BYPASS_EMAIL_VERIFICATION: "true",
+    });
+
+    expect(result.failed).toBe(false);
+    expect(itemFor(result, "AUTH_MODE")?.level).toBe("ok");
+  });
+
+  it("accepts locked selfhosted_auth after bootstrap without setup token", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "selfhosted_auth",
+      BETTER_AUTH_URL: "https://seo.example.com",
+      BETTER_AUTH_SECRET: "x".repeat(40),
+      SELFHOST_SIGNUP_DISABLED: "true",
+      INITIAL_OWNER_EMAIL: "owner@example.com",
+      INITIAL_ORGANIZATION_NAME: "Example",
+      BYPASS_EMAIL_VERIFICATION: "true",
+    });
+
+    expect(result.failed).toBe(false);
   });
 
   it("mentions ALLOWED_HOST when unset", () => {
