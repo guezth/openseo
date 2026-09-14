@@ -12,6 +12,22 @@ const DEFAULT_CHAT_AGENT_MODEL = "openai/gpt-5.6-luna";
 const MINIMAX_M3 = "minimax/minimax-m3";
 
 /**
+ * Ollama exposes an OpenAI-compatible chat-completions endpoint. Reusing the
+ * OpenRouter AI SDK adapter here keeps the LanguageModelV3 contract required
+ * by Think while sending requests directly to the operator's Ollama service.
+ */
+export function buildOllamaChatAgentModel(
+  baseURL: string,
+  modelId: string,
+): LanguageModelV3 {
+  const ollama = createOpenRouter({
+    apiKey: "ollama",
+    baseURL: baseURL.replace(/\/$/, ""),
+  });
+  return ollama(modelId);
+}
+
+/**
  * Returns the AI SDK LanguageModel for the chat agent. `usage: { include: true }`
  * turns on OpenRouter usage accounting so each response carries its real USD
  * cost (providerMetadata.openrouter.usage.cost) — which we meter against the

@@ -237,22 +237,51 @@ function checkOptionalFeatures(env: EnvRecord, items: PreflightItem[]): void {
     });
   }
 
-  items.push(
-    get(env, "OPENROUTER_API_KEY")
-      ? {
-          key: "ai",
-          name: "AI features",
-          level: "ok",
-          message: "OPENROUTER_API_KEY set",
-        }
-      : {
-          key: "ai",
-          name: "AI features",
-          level: "info",
-          message:
-            "OPENROUTER_API_KEY not set (optional) — SAM, the in-app SEO agent, is disabled.",
-        },
-  );
+  const aiProvider = get(env, "AI_PROVIDER") ?? "openrouter";
+  if (aiProvider === "ollama") {
+    const missing = ["OLLAMA_BASE_URL", "OLLAMA_MODEL"].filter(
+      (name) => !get(env, name),
+    );
+    items.push(
+      missing.length
+        ? {
+            key: "ai",
+            name: "AI features",
+            level: "warn",
+            message: `AI_PROVIDER=ollama requires ${missing.join(" and ")} — SAM is disabled.`,
+          }
+        : {
+            key: "ai",
+            name: "AI features",
+            level: "ok",
+            message: `Ollama configured (${get(env, "OLLAMA_MODEL")})`,
+          },
+    );
+  } else if (aiProvider === "openrouter") {
+    items.push(
+      get(env, "OPENROUTER_API_KEY")
+        ? {
+            key: "ai",
+            name: "AI features",
+            level: "ok",
+            message: "OpenRouter configured",
+          }
+        : {
+            key: "ai",
+            name: "AI features",
+            level: "info",
+            message:
+              "OPENROUTER_API_KEY not set (optional) — SAM, the in-app SEO agent, is disabled.",
+          },
+    );
+  } else {
+    items.push({
+      key: "ai",
+      name: "AI features",
+      level: "warn",
+      message: `Unsupported AI_PROVIDER "${aiProvider}". Use openrouter or ollama — SAM is disabled.`,
+    });
+  }
 }
 
 // Shared per-feature checks: the Docker preflight prints these at boot and

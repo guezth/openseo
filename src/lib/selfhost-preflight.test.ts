@@ -120,4 +120,31 @@ describe("runSelfhostPreflight", () => {
     expect(itemFor(result, "ALLOWED_HOST")?.level).toBe("info");
     expect(itemFor(result, "ALLOWED_HOST")?.message).toContain("reverse proxy");
   });
+
+  it("accepts Ollama as the SAM provider", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "local_noauth",
+      AI_PROVIDER: "ollama",
+      OLLAMA_BASE_URL: "http://ollama:11434/v1",
+      OLLAMA_MODEL: "gemma4:31b-cloud",
+    });
+
+    expect(itemFor(result, "AI features")).toMatchObject({
+      level: "ok",
+      message: "Ollama configured (gemma4:31b-cloud)",
+    });
+  });
+
+  it("warns when an Ollama setting is missing", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "local_noauth",
+      AI_PROVIDER: "ollama",
+      OLLAMA_MODEL: "gemma4:31b-cloud",
+    });
+
+    expect(itemFor(result, "AI features")?.level).toBe("warn");
+    expect(itemFor(result, "AI features")?.message).toContain(
+      "OLLAMA_BASE_URL",
+    );
+  });
 });

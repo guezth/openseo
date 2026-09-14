@@ -34,6 +34,10 @@ Optional env values:
 - `AUTH_MODE=local_noauth` (already set in compose)
 - `OPEN_SEO_IMAGE` (defaults to `ghcr.io/every-app/open-seo:latest`)
 - `OPENROUTER_API_KEY` (required for AI features such as SAM; see [OpenRouter](https://openrouter.ai/settings/keys))
+- `AI_PROVIDER=ollama`, `OLLAMA_BASE_URL=http://ollama:11434/v1`, and
+  `OLLAMA_MODEL=gemma4:31b-cloud` to use an Ollama service instead of OpenRouter.
+  Use the Ollama service/container hostname, not `localhost`, when it runs in a
+  separate container.
 
 If you are putting Docker behind a reverse proxy or a temporary tunnel, remember that Docker self-hosting runs with app auth disabled. Only expose it behind your own auth-protected reverse proxy, tunnel, or private network, and add the public hostname before restarting:
 

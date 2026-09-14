@@ -66,9 +66,13 @@ declare namespace Cloudflare {
     DATAFORSEO_API_KEY: string;
 
     // OpenRouter API key for the SAM in-app chat agent.
+    AI_PROVIDER?: "openrouter" | "ollama";
     OPENROUTER_API_KEY?: string;
     // Optional OpenRouter model slug override (defaults in openrouter.ts).
     OPENROUTER_MODEL?: string;
+    // Ollama's OpenAI-compatible endpoint and model name.
+    OLLAMA_BASE_URL?: string;
+    OLLAMA_MODEL?: string;
   }
 }
 
