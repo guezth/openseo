@@ -7,6 +7,9 @@ import { consumeInvitationSendBudget } from "@/server/auth/invitation-send-limit
 import { requireOrgPermission } from "@/server/auth/org-gate";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { sendHostedInvitationEmail } from "@/server/email/loops";
+import { sendSelfHostedInvitationEmail } from "@/server/email/selfhost";
+import { getAuthMode } from "@/lib/auth-mode";
+import { env } from "cloudflare:workers";
 import { AppError } from "@/server/lib/errors";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 
@@ -96,7 +99,10 @@ export const switchOrganization = createServerFn({ method: "POST" })
     return { organizationId: data.organizationId };
   });
 
-const sendInvitationSchema = z.object({ email: z.string().email() });
+const sendInvitationSchema = z.object({
+  email: z.string().email(),
+  role: z.enum(["admin", "manager", "viewer"]),
+});
 
 // Invite (or re-invite) a teammate. better-auth creates the pending
 // invitation — its server-side checks (inviter must be a member with invite
@@ -120,7 +126,7 @@ export const sendTeamInvitation = createServerFn({ method: "POST" })
       headers: getRequest().headers,
       body: {
         email: data.email,
-        role: "admin",
+        role: data.role,
         resend: true,
         // Bind the invitation to the request's resolved org, not the session's
         // active-organization hint, which can be stale after a switch.
@@ -138,13 +144,18 @@ export const sendTeamInvitation = createServerFn({ method: "POST" })
       )?.organizationName ?? "Organization";
 
     try {
-      await sendHostedInvitationEmail({
+      const invitationEmail = {
         email: data.email,
         inviteUrl: `${getHostedBaseUrl()}/accept-invitation/${invitation.id}`,
         organizationName,
         inviterName: inviter?.name?.trim() || context.userEmail,
         inviterEmail: context.userEmail,
-      });
+      };
+      if (getAuthMode(env.AUTH_MODE) === "selfhosted_auth") {
+        await sendSelfHostedInvitationEmail(invitationEmail);
+      } else {
+        await sendHostedInvitationEmail(invitationEmail);
+      }
     } catch (error) {
       // The invitation row exists and stays pending — surface the send
       // failure so the inviter retries instead of assuming it landed.

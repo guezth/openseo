@@ -78,6 +78,48 @@ function checkAuthMode(env: EnvRecord, items: PreflightItem[]): void {
     return;
   }
 
+  if (mode === "selfhosted_auth") {
+    const missing = [
+      "BETTER_AUTH_URL",
+      "BETTER_AUTH_SECRET",
+      "INITIAL_OWNER_EMAIL",
+      "INITIAL_ORGANIZATION_NAME",
+    ].filter((name) => !get(env, name));
+    const secret = get(env, "BETTER_AUTH_SECRET");
+    if (secret && secret.length < MIN_BETTER_AUTH_SECRET_LENGTH) {
+      missing.push(
+        `BETTER_AUTH_SECRET (${MIN_BETTER_AUTH_SECRET_LENGTH}+ characters)`,
+      );
+    }
+    if (get(env, "BYPASS_EMAIL_VERIFICATION") !== "true") {
+      missing.push("BYPASS_EMAIL_VERIFICATION=true");
+    }
+    const setupToken = get(env, "SETUP_TOKEN");
+    const signupDisabled = get(env, "SELFHOST_SIGNUP_DISABLED") === "true";
+    if (!signupDisabled && !setupToken) {
+      missing.push("SETUP_TOKEN (or SELFHOST_SIGNUP_DISABLED=true)");
+    }
+    if (setupToken && setupToken.length < 32) {
+      missing.push("SETUP_TOKEN (32+ characters)");
+    }
+    items.push(
+      missing.length
+        ? {
+            key: "auth",
+            name: "AUTH_MODE",
+            level: "fail",
+            message: `selfhosted_auth requires ${missing.join(", ")}.`,
+          }
+        : {
+            key: "auth",
+            name: "AUTH_MODE",
+            level: "ok",
+            message: "selfhosted_auth — native Better Auth sessions",
+          },
+    );
+    return;
+  }
+
   // cloudflare_access (explicit or defaulted)
   const teamDomain = get(env, "TEAM_DOMAIN");
   const policyAud = get(env, "POLICY_AUD");
@@ -195,22 +237,51 @@ function checkOptionalFeatures(env: EnvRecord, items: PreflightItem[]): void {
     });
   }
 
-  items.push(
-    get(env, "OPENROUTER_API_KEY")
-      ? {
-          key: "ai",
-          name: "AI features",
-          level: "ok",
-          message: "OPENROUTER_API_KEY set",
-        }
-      : {
-          key: "ai",
-          name: "AI features",
-          level: "info",
-          message:
-            "OPENROUTER_API_KEY not set (optional) — SAM, the in-app SEO agent, is disabled.",
-        },
-  );
+  const aiProvider = get(env, "AI_PROVIDER") ?? "openrouter";
+  if (aiProvider === "ollama") {
+    const missing = ["OLLAMA_BASE_URL", "OLLAMA_MODEL"].filter(
+      (name) => !get(env, name),
+    );
+    items.push(
+      missing.length
+        ? {
+            key: "ai",
+            name: "AI features",
+            level: "warn",
+            message: `AI_PROVIDER=ollama requires ${missing.join(" and ")} — SAM is disabled.`,
+          }
+        : {
+            key: "ai",
+            name: "AI features",
+            level: "ok",
+            message: `Ollama configured (${get(env, "OLLAMA_MODEL")})`,
+          },
+    );
+  } else if (aiProvider === "openrouter") {
+    items.push(
+      get(env, "OPENROUTER_API_KEY")
+        ? {
+            key: "ai",
+            name: "AI features",
+            level: "ok",
+            message: "OpenRouter configured",
+          }
+        : {
+            key: "ai",
+            name: "AI features",
+            level: "info",
+            message:
+              "OPENROUTER_API_KEY not set (optional) — SAM, the in-app SEO agent, is disabled.",
+          },
+    );
+  } else {
+    items.push({
+      key: "ai",
+      name: "AI features",
+      level: "warn",
+      message: `Unsupported AI_PROVIDER "${aiProvider}". Use openrouter or ollama — SAM is disabled.`,
+    });
+  }
 }
 
 // Shared per-feature checks: the Docker preflight prints these at boot and

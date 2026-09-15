@@ -3,6 +3,7 @@ import { z } from "zod";
 export const AUTH_MODES = [
   "cloudflare_access",
   "local_noauth",
+  "selfhosted_auth",
   "hosted",
 ] as const;
 
@@ -33,6 +34,12 @@ export function isHostedAuthMode(value: string | null | undefined) {
   return getAuthMode(value) === "hosted";
 }
 
+/** Auth modes backed by Better Auth sessions and the native sign-in UI. */
+export function isSessionAuthMode(value: string | null | undefined) {
+  const mode = getAuthMode(value);
+  return mode === "hosted" || mode === "selfhosted_auth";
+}
+
 export function isHostedClientAuthMode() {
   // This is an explicit deploy-time contract: the operator must keep the
   // client build-time AUTH_MODE aligned with the server runtime AUTH_MODE.
@@ -40,6 +47,10 @@ export function isHostedClientAuthMode() {
   // backend which auth UI to render. Hosted deployments must therefore set
   // AUTH_MODE=hosted in both the client build environment and the runtime.
   return isHostedAuthMode(import.meta.env.AUTH_MODE);
+}
+
+export function isSessionClientAuthMode() {
+  return isSessionAuthMode(import.meta.env.AUTH_MODE);
 }
 
 export function isEmailVerificationBypassed() {

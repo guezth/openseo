@@ -5,6 +5,8 @@ import { hasOrgPermission } from "@/lib/org-permissions";
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   admin: "Admin",
+  manager: "Manager",
+  viewer: "Read only",
   member: "Member",
 };
 

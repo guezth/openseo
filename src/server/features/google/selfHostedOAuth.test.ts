@@ -4,8 +4,11 @@ import {
   GA4_INTEGRATION,
   GSC_INTEGRATION,
   handleSelfHostedGoogleOAuthCallback,
+  handleSelfHostedGoogleOAuthCallbackRequest,
   type SelfHostedGoogleOAuthIntegration,
 } from "./selfHostedOAuth";
+
+const mockEnv = vi.hoisted(() => ({ AUTH_MODE: "selfhosted_auth" }));
 
 const mocks = vi.hoisted(() => ({
   getGoogleOAuthClientConfig: vi.fn(),
@@ -15,9 +18,12 @@ const mocks = vi.hoisted(() => ({
   insertValues: vi.fn(),
   updateSet: vi.fn(),
   getAuth: vi.fn(),
+  resolveCloudflareAccessContext: vi.fn(),
+  resolveHostedContext: vi.fn(),
+  resolveLocalNoAuthContext: vi.fn(),
 }));
 
-vi.mock("cloudflare:workers", () => ({ env: {} }));
+vi.mock("cloudflare:workers", () => ({ env: mockEnv }));
 vi.mock("drizzle-orm", () => ({
   and: (...values: unknown[]) => values,
   eq: (...values: unknown[]) => values,
@@ -42,6 +48,15 @@ vi.mock("@/db", () => ({
   },
 }));
 vi.mock("@/lib/auth", () => ({ getAuth: mocks.getAuth }));
+vi.mock("@/middleware/ensure-user/cloudflareAccess", () => ({
+  resolveCloudflareAccessContext: mocks.resolveCloudflareAccessContext,
+}));
+vi.mock("@/middleware/ensure-user/delegated", () => ({
+  resolveLocalNoAuthContext: mocks.resolveLocalNoAuthContext,
+}));
+vi.mock("@/middleware/ensure-user/hosted", () => ({
+  resolveHostedContext: mocks.resolveHostedContext,
+}));
 vi.mock("@/server/features/google/oauth-config", () => ({
   getGoogleOAuthClientConfig: mocks.getGoogleOAuthClientConfig,
   hasSelfHostedGoogleOAuthConfig: mocks.hasSelfHostedGoogleOAuthConfig,
@@ -80,6 +95,7 @@ function callbackRequest(
 
 describe("self-hosted Google OAuth providers", () => {
   beforeEach(() => {
+    mockEnv.AUTH_MODE = "selfhosted_auth";
     mocks.getGoogleOAuthClientConfig.mockResolvedValue({
       clientId: "google-client-id",
       clientSecret: "google-client-secret",
@@ -93,6 +109,7 @@ describe("self-hosted Google OAuth providers", () => {
         secretConfig: "secret",
       }),
     });
+    mocks.resolveHostedContext.mockResolvedValue(user);
     vi.stubGlobal("fetch", mocks.fetch);
   });
 
@@ -204,6 +221,18 @@ describe("self-hosted Google OAuth providers", () => {
     expect(response.status).toBe(303);
     expect(mocks.fetch).not.toHaveBeenCalled();
     expect(mocks.insertValues).not.toHaveBeenCalled();
+  });
+
+  it("uses the native session on the OAuth callback in selfhosted_auth mode", async () => {
+    const state = await authorizationState(GSC_INTEGRATION);
+    const response = await handleSelfHostedGoogleOAuthCallbackRequest(
+      callbackRequest(GSC_INTEGRATION, state, { error: "access_denied" }),
+      GSC_INTEGRATION,
+    );
+
+    expect(response.status).toBe(303);
+    expect(mocks.resolveHostedContext).toHaveBeenCalledOnce();
+    expect(mocks.resolveCloudflareAccessContext).not.toHaveBeenCalled();
   });
 
   it("round-trips the GSC integration through the shared callback", async () => {

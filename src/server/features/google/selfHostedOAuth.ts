@@ -6,9 +6,14 @@ import { z } from "zod";
 import { db } from "@/db";
 import { account } from "@/db/schema";
 import { getAuth } from "@/lib/auth";
-import { getAuthMode, isHostedAuthMode } from "@/lib/auth-mode";
+import {
+  getAuthMode,
+  isHostedAuthMode,
+  isSessionAuthMode,
+} from "@/lib/auth-mode";
 import { resolveCloudflareAccessContext } from "@/middleware/ensure-user/cloudflareAccess";
 import { resolveLocalNoAuthContext } from "@/middleware/ensure-user/delegated";
+import { resolveHostedContext } from "@/middleware/ensure-user/hosted";
 import { AppError } from "@/server/lib/errors";
 import { responseForAppError } from "@/server/lib/http-errors";
 import { getPublicOrigin } from "@/server/mcp/public-origin";
@@ -390,7 +395,9 @@ export async function handleSelfHostedGoogleOAuthCallbackRequest(
     const context =
       authMode === "local_noauth"
         ? await resolveLocalNoAuthContext()
-        : await resolveCloudflareAccessContext(request.headers);
+        : isSessionAuthMode(authMode)
+          ? await resolveHostedContext(request.headers)
+          : await resolveCloudflareAccessContext(request.headers);
     return await handleSelfHostedGoogleOAuthCallback({
       integration,
       request,

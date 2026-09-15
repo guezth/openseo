@@ -51,9 +51,15 @@ export const Route = createFileRoute("/_auth/sign-up")({
 function SignUpPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { redirectTo, isHostedMode } = useAuthPageState(search.redirect);
+  const {
+    redirectTo,
+    isHostedMode,
+    isCommercialHostedMode,
+    setupToken,
+    invitationId,
+  } = useAuthPageState(search.redirect);
   const postSignupRedirect = redirectTo === "/" ? "/onboarding" : redirectTo;
-  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(!isCommercialHostedMode);
   const google = useGoogleSignUp({ redirectTo, postSignupRedirect });
 
   // Turnstile is active only in hosted mode with a configured site key.
@@ -102,17 +108,23 @@ function SignUpPage() {
             verificationSearch.redirect,
           );
         }
+        const authHeaders: Record<string, string> = {};
+        if (isTurnstileEnabled && captchaToken) {
+          authHeaders["x-captcha-response"] = captchaToken;
+        }
+        if (!isCommercialHostedMode && setupToken) {
+          authHeaders["x-openseo-setup-token"] = setupToken;
+        }
+        if (!isCommercialHostedMode && invitationId) {
+          authHeaders["x-openseo-invitation-id"] = invitationId;
+        }
         const result = await authClient.signUp.email({
           name: resolvedName,
           email,
           password: value.password,
           callbackURL: verificationCallbackURL.toString(),
-          ...(isTurnstileEnabled && captchaToken
-            ? {
-                fetchOptions: {
-                  headers: { "x-captcha-response": captchaToken },
-                },
-              }
+          ...(Object.keys(authHeaders).length
+            ? { fetchOptions: { headers: authHeaders } }
             : {}),
         });
 
@@ -406,10 +418,5 @@ function useGoogleSignUp({
     }
   };
 
-  return {
-    isStarting,
-    error,
-    start,
-    clearError: () => setError(null),
-  };
+  return { isStarting, error, start, clearError: () => setError(null) };
 }

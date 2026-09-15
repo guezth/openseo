@@ -7,7 +7,7 @@ import { GSC_OAUTH_PROVIDER_ID, GSC_OAUTH_SCOPES } from "@/shared/gsc";
 
 type OrganizationOptions = NonNullable<Parameters<typeof organization>[0]>;
 
-const INVITATION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7;
+const INVITATION_EXPIRES_IN_SECONDS = 60 * 60 * 72;
 
 export function createBaseAuthConfig(options?: {
   organization?: Pick<OrganizationOptions, "organizationHooks">;

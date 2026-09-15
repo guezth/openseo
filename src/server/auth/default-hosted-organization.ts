@@ -1,6 +1,7 @@
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { markDubReferredOrganization } from "@/server/referrals/dub";
 import { slugify, toHex } from "./org-slug";
+import { getAuthMode } from "@/lib/auth-mode";
 
 type HostedUser = {
   id: string;
@@ -19,6 +20,12 @@ type HostedOrganizationCreator = (
 ) => Promise<{ id: string }>;
 
 function getDefaultHostedOrganizationName(user: HostedUser) {
+  if (getAuthMode(process.env.AUTH_MODE) === "selfhosted_auth") {
+    const configured = process.env.INITIAL_ORGANIZATION_NAME?.trim();
+    if (configured) {
+      return configured;
+    }
+  }
   const name = user.name?.trim() || user.email.split("@")[0] || "OpenSEO";
   return `${name}'s organization`;
 }

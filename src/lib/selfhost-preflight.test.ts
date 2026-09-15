@@ -25,7 +25,7 @@ describe("runSelfhostPreflight", () => {
 
     expect(result.failed).toBe(true);
     expect(itemFor(result, "AUTH_MODE")?.message).toContain(
-      "cloudflare_access, local_noauth, hosted",
+      "cloudflare_access, local_noauth, selfhosted_auth, hosted",
     );
   });
 
@@ -85,10 +85,66 @@ describe("runSelfhostPreflight", () => {
     expect(item?.message).not.toContain("BETTER_AUTH_SECRET,");
   });
 
+  it("accepts selfhosted_auth bootstrap configuration", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "selfhosted_auth",
+      BETTER_AUTH_URL: "https://seo.example.com",
+      BETTER_AUTH_SECRET: "x".repeat(40),
+      SETUP_TOKEN: "y".repeat(40),
+      INITIAL_OWNER_EMAIL: "owner@example.com",
+      INITIAL_ORGANIZATION_NAME: "Example",
+      BYPASS_EMAIL_VERIFICATION: "true",
+    });
+
+    expect(result.failed).toBe(false);
+    expect(itemFor(result, "AUTH_MODE")?.level).toBe("ok");
+  });
+
+  it("accepts locked selfhosted_auth after bootstrap without setup token", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "selfhosted_auth",
+      BETTER_AUTH_URL: "https://seo.example.com",
+      BETTER_AUTH_SECRET: "x".repeat(40),
+      SELFHOST_SIGNUP_DISABLED: "true",
+      INITIAL_OWNER_EMAIL: "owner@example.com",
+      INITIAL_ORGANIZATION_NAME: "Example",
+      BYPASS_EMAIL_VERIFICATION: "true",
+    });
+
+    expect(result.failed).toBe(false);
+  });
+
   it("mentions ALLOWED_HOST when unset", () => {
     const result = runSelfhostPreflight({ AUTH_MODE: "local_noauth" });
 
     expect(itemFor(result, "ALLOWED_HOST")?.level).toBe("info");
     expect(itemFor(result, "ALLOWED_HOST")?.message).toContain("reverse proxy");
+  });
+
+  it("accepts Ollama as the SAM provider", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "local_noauth",
+      AI_PROVIDER: "ollama",
+      OLLAMA_BASE_URL: "http://ollama:11434/v1",
+      OLLAMA_MODEL: "gemma4:31b-cloud",
+    });
+
+    expect(itemFor(result, "AI features")).toMatchObject({
+      level: "ok",
+      message: "Ollama configured (gemma4:31b-cloud)",
+    });
+  });
+
+  it("warns when an Ollama setting is missing", () => {
+    const result = runSelfhostPreflight({
+      AUTH_MODE: "local_noauth",
+      AI_PROVIDER: "ollama",
+      OLLAMA_MODEL: "gemma4:31b-cloud",
+    });
+
+    expect(itemFor(result, "AI features")?.level).toBe("warn");
+    expect(itemFor(result, "AI features")?.message).toContain(
+      "OLLAMA_BASE_URL",
+    );
   });
 });

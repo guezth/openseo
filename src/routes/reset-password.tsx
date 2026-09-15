@@ -7,7 +7,7 @@ import {
 } from "@/client/features/auth/AuthPage";
 import { getFieldError, getFormError } from "@/client/lib/forms";
 import { authClient } from "@/lib/auth-client";
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { isSessionClientAuthMode } from "@/lib/auth-mode";
 import { getSignInSearch, normalizeAuthRedirect } from "@/lib/auth-redirect";
 import {
   HOSTED_PASSWORD_MAX_LENGTH,
@@ -101,7 +101,7 @@ function getResetPasswordPageCopy({
 function ResetPasswordPage() {
   const search = Route.useSearch();
   const redirectTo = normalizeAuthRedirect(search.redirect);
-  const isHostedMode = isHostedClientAuthMode();
+  const isHostedMode = isSessionClientAuthMode();
   const routeError = getResetPasswordErrorMessage(search.error);
   const token = typeof search.token === "string" ? search.token : null;
   const form = useForm({

@@ -26,11 +26,10 @@ export const Route = createFileRoute("/_auth/sign-in")({
 function SignInPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { redirectTo, oauthQuery, isHostedMode } = useAuthPageState(
-    search.redirect,
-  );
+  const { redirectTo, oauthQuery, isHostedMode, isCommercialHostedMode } =
+    useAuthPageState(search.redirect);
   const authCallbackURL = redirectTo;
-  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(!isCommercialHostedMode);
   const [isStartingGoogle, setIsStartingGoogle] = useState(false);
   const [socialError, setSocialError] = useState<string | null>(null);
 
@@ -140,13 +139,15 @@ function SignInPage() {
                 Forgot password?
               </Link>
             ) : null}
-            <Link
-              to="/sign-up"
-              search={getSignInSearch(redirectTo)}
-              className="text-base-content underline underline-offset-2 hover:text-base-content/80 transition-colors"
-            >
-              Create account
-            </Link>
+            {isCommercialHostedMode ? (
+              <Link
+                to="/sign-up"
+                search={getSignInSearch(redirectTo)}
+                className="text-base-content underline underline-offset-2 hover:text-base-content/80 transition-colors"
+              >
+                Create account
+              </Link>
+            ) : null}
           </div>
         ) : null
       }

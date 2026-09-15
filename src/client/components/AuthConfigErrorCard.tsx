@@ -1,5 +1,5 @@
 import { ShieldAlert } from "lucide-react";
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { getAuthMode, isHostedClientAuthMode } from "@/lib/auth-mode";
 
 const CLOUDFLARE_SETUP_GUIDE_URL =
   "https://github.com/every-app/open-seo/blob/main/docs/SELF_HOSTING_CLOUDFLARE.md#2-configure-authentication-and-secrets";
@@ -14,6 +14,8 @@ export function AuthConfigErrorCard({
   onRetry,
 }: AuthConfigErrorCardProps) {
   const isHostedMode = isHostedClientAuthMode();
+  const isNativeSelfHosted =
+    getAuthMode(import.meta.env.AUTH_MODE) === "selfhosted_auth";
 
   return (
     <div className="card w-full max-w-2xl bg-base-100 border border-base-300 shadow-xl">
@@ -27,7 +29,14 @@ export function AuthConfigErrorCard({
           <span>{message}</span>
         </div>
 
-        {isHostedMode ? (
+        {isNativeSelfHosted ? (
+          <p className="text-sm text-base-content/70">
+            Native self-hosted authentication requires a stable
+            <code className="mx-1">BETTER_AUTH_SECRET</code>, the public
+            <code className="mx-1">BETTER_AUTH_URL</code>, and completed owner
+            bootstrap configuration.
+          </p>
+        ) : isHostedMode ? (
           <p className="text-sm text-base-content/70">
             Hosted mode requires{" "}
             <code className="mx-1">BETTER_AUTH_SECRET</code>

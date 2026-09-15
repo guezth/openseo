@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { isHostedClientAuthMode } from "@/lib/auth-mode";
+import { isSessionClientAuthMode } from "@/lib/auth-mode";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsLayout,
@@ -12,7 +12,7 @@ function SettingsLayout() {
   const tabs = [
     { to: "/settings" as const, label: "Personal", exact: true },
     // Self-host has no memberships — the organization tab would 404.
-    ...(isHostedClientAuthMode()
+    ...(isSessionClientAuthMode()
       ? [{ to: "/settings/organization" as const, label: "Organization" }]
       : []),
   ];

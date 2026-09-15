@@ -5,13 +5,13 @@ import { onboardingAnswersQueryOptions } from "@/client/features/onboarding/onbo
 import { useSession } from "@/lib/auth-client";
 import {
   isEmailVerificationBypassed,
-  isHostedClientAuthMode,
+  isSessionClientAuthMode,
 } from "@/lib/auth-mode";
 
 export function useOnboardingRedirect() {
   const navigate = useNavigate();
   const { data: session } = useSession();
-  const isHostedMode = isHostedClientAuthMode();
+  const isHostedMode = isSessionClientAuthMode();
   const isEmailVerified =
     session?.user?.emailVerified === true || isEmailVerificationBypassed();
   const onboardingQuery = useQuery({
